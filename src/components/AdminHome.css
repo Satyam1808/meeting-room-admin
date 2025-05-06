@@ -1,0 +1,29 @@
+.list-item {
+    display: flex;
+    justify-content: center;
+    width: auto;
+    align-items: center;
+    margin: 0;
+    border-radius: 3px;
+    transition: background-color 0.3s ease, margin 0.3s ease;
+  }
+  
+  .list-item.selected {
+    margin: 0 8px;
+    background-color: white;
+  }
+  
+  .icon {
+    color: white;
+    transition: color 0.3s ease;
+  }
+  
+  .selected-icon {
+    color: #0069A5;
+  }
+  
+  .list-text {
+    color: white;
+    transition: color 0.3s ease;
+  }
+  
