@@ -1,0 +1,126 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+
+/* ===============================
+   Dashboard Title
+================================= */
+.dashboard-title {
+    font-size: 28px;
+    font-weight: 600;
+    text-align: center;
+    margin: 40px 0 30px;
+}
+
+/* ===============================
+   Dashboard Grid Layout
+================================= */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 30px;
+    width: 90%;
+    max-width: 1200px;
+    margin: auto;
+   
+}
+
+/* ===============================
+   Dashboard Card Styling
+================================= */
+.card-content {
+   
+    border-radius: 16px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+   
+    text-align: center;
+    transition: all 0.3s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 250px;
+    cursor: pointer;
+    
+}
+.card-content:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+.card-content .icon {
+    font-size: 50px;
+    color: #2C3E50;
+    margin-bottom: 20px;
+}
+.card-text .count {
+    font-size: 32px;
+    font-weight: 700;
+    color: #2C3E50;
+}
+
+/* ===============================
+   Sidebar Styling
+================================= */
+.MuiDrawer-paper {
+    background-color: #2C3E50;
+    color: white;
+    width: 280px;
+    transition: width 0.3s ease;
+}
+.MuiDrawer-root {
+    width: 280px;
+    transition: width 0.3s ease;
+}
+.MuiDrawer-paper.MuiDrawer-paperAnchorDocked {
+    width: 60px;
+}
+.MuiListItemIcon-root {
+    font-size: 24px;
+    color: white;
+}
+.MuiListItemText-root {
+    font-size: 16px;
+    color: white;
+}
+.MuiIconButton-root {
+    color: white;
+}
+.MuiListItemButton-root:hover {
+    background-color: #2C3E50;
+}
+
+/* ===============================
+   User Management Container
+================================= */
+.user-management {
+    background-color: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    margin: 30px auto;
+    max-width: 1000px;
+    padding: 30px;
+}
+
+/* ===============================
+   Clickable Elements
+================================= */
+.clickable {
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+.clickable:hover {
+    transform: scale(1.03);
+}
+
+/* ===============================
+   Responsive Grid Adjustments
+================================= */
+@media (max-width: 992px) {
+    .dashboard-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+@media (max-width: 768px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}

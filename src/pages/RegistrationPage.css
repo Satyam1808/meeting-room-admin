@@ -1,0 +1,95 @@
+/* AdminRegistrationPage.css */
+.registration-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  width: 100vw;
+  background: linear-gradient(135deg, #ececec, #ffffff);
+}
+
+.registration-container {
+  background: white;
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.logo {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+}
+
+.registration-container input {
+  width: calc(100% - 20px);
+  padding: 10px;
+  margin: 8px 0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.password-container {
+  position: relative;
+}
+
+.password-container span {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #bbb;
+}
+
+button {
+  width: 100%;
+  padding: 10px;
+  background-color: #34495e;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-top: 10px;
+  transition: background-color 0.3s;
+  text-align: center;
+}
+
+button:hover {
+  background-color: #253544;
+}
+
+.login-link {
+  margin-top: 15px;
+  font-size: 14px;
+}
+
+.login-link a {
+  color: #34495e;
+  text-decoration: none;
+}
+
+.login-link a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .registration-container {
+      width: 80%;
+      padding: 25px;
+  }
+}
+
+@media (max-width: 480px) {
+  .registration-container {
+      width: 90%;
+      padding: 20px;
+  }
+}
