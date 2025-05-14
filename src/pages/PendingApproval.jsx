@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import "./PendingApproval.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faThLarge, faEllipsisV, faList } from "@fortawesome/free-solid-svg-icons";
+import { Snackbar, Alert } from "@mui/material";
+import { approveBookingAPI ,rejectBookingAPI,getPendingBookings } from "../api";
 
 const PendingApproval = () => {
   const [activeTab, setActiveTab] = useState("All");
@@ -9,48 +11,87 @@ const PendingApproval = () => {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [menuOpen, setMenuOpen] = useState(null);
   const [searchTerm, setSearchTerm] = useState(""); // ✅ New state
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+  const token = localStorage.getItem("adminToken");
 
-  const [bookings, setBookings] = useState([
-    {
-      room: "Training Room B6",
-      employee: "Kirti Pal Singh",
-      from: "February 28, 2025 09:00 AM",
-      to: "February 28, 2025 12:00 PM",
-      floor: "6th Floor",
-      seats: "20",
-      date: "February 28, 2025",
-      bookedFrom: "Internal Portal",
-      status: "Pending",
-      description: "Training session on cybersecurity",
-      image: "https://images.unsplash.com/photo-1462826303086-329426d1aef5?w=600&auto=format&fit=crop&q=60"
-    },
-    {
-      room: "Training Room A1",
-      employee: "Satyam Kumar",
-      from: "January 28, 2025 09:00 AM",
-      to: "January 28, 2025 09:50 AM",
-      floor: "1st Floor",
-      seats: "10",
-      date: "January 28, 2025",
-      bookedFrom: "Internal Portal",
-      status: "Pending",
-      description: "Team meeting",
-      image: "https://images.unsplash.com/photo-1462826303086-329426d1aef5?w=600&auto=format&fit=crop&q=60"
+  const [bookings, setBookings] = useState([ ]);
+
+  const approveBooking = async (index) => {
+    try {
+      const bookingId = bookings[index].id;
+      await approveBookingAPI(bookingId, token);
+  
+      // update local state after successful approval
+      setBookings((prev) =>
+        prev.map((booking, i) =>
+          i === index ? { ...booking, status: "upcoming", approveStatus: "approved" } : booking
+        )
+      );
+  
+      setSnackbar({ open: true, message: "Booking approved successfully", severity: "success" });
+      setMenuOpen(null);
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: error.response?.data?.message || "Failed to approve booking.",
+        severity: "error",
+      });
     }
-  ]);
-
-  const approveBooking = (index) => {
-    setBookings(bookings.map((booking, i) =>
-      i === index ? { ...booking, status: "Approved" } : booking
-    ));
-    setMenuOpen(null);
   };
 
-  const rejectBooking = (index) => {
-    setBookings(bookings.map((booking, i) =>
-      i === index ? { ...booking, status: "Rejected" } : booking
-    ));
-    setMenuOpen(null);
+  
+  const rejectBooking = async (index) => {
+    try {
+      const bookingId = bookings[index].id;
+      await rejectBookingAPI(bookingId, token);
+  
+      // update local state after rejection
+      setBookings((prev) =>
+        prev.map((booking, i) =>
+          i === index ? { ...booking, approveStatus: "rejected" } : booking
+        )
+      );
+  
+      setSnackbar({ open: true, message: "Booking rejected successfully", severity: "success" });
+      setMenuOpen(null);
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: error.response?.data?.message || "Failed to reject booking.",
+        severity: "error",
+      });
+    }
+  };
+
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        const data = await getPendingBookings(token);
+  
+        const formattedBookings = data.map((booking) => ({
+          id: booking._id,
+          room: booking.roomId.title || "N/A",  // roomName should be populated in backend OR fallback
+          employee: booking.userName,
+          from: new Date(booking.fromDateTime).toLocaleString(),
+          to: new Date(booking.toDateTime).toLocaleString(),
+          status: booking.approveStatus.charAt(0).toUpperCase() + booking.approveStatus.slice(1),
+          approveStatus: booking.approveStatus,
+          description: booking.description || "-",
+          date: new Date(booking.fromDateTime).toLocaleDateString(), // for searchTerm filtering
+        }));
+  
+        setBookings(formattedBookings);
+      } catch (error) {
+        console.error("Failed to fetch bookings:", error);
+      }
+    };
+  
+    fetchBookings();
+  }, []);
+  
+  
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
   };
 
   // Filter bookings by status and search
@@ -102,51 +143,74 @@ const PendingApproval = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredBookings.map((booking, index) => (
-              <tr key={index}>
-                <td>{booking.room}</td>
-                <td>{booking.employee}</td>
-                <td>{booking.from}</td>
-                <td>{booking.to}</td>
-                <td>{booking.status}</td>
-                <td className="action" onClick={(e) => { e.stopPropagation(); toggleMenu(index); }}>
-                  <FontAwesomeIcon icon={faEllipsisV} />
-                  {menuOpen === index && (
-                    <div className="dropdown-menu">
-                      {booking.status === "Pending" && (
-                        <>
-                          <div onClick={() => approveBooking(index)}>Approve</div>
-                          <div onClick={() => rejectBooking(index)}>Reject</div>
-                        </>
-                      )}
-                    </div>
-                  )}
+            {filteredBookings.length > 0 ? (
+              filteredBookings.map((booking, index) => (
+                <tr key={index}>
+                  <td>{booking.room}</td>
+                  <td>{booking.employee}</td>
+                  <td>{booking.from}</td>
+                  <td>{booking.to}</td>
+                  <td>{booking.approveStatus}</td>
+                  <td className="action" onClick={(e) => { e.stopPropagation(); toggleMenu(index); }}>
+                    <FontAwesomeIcon icon={faEllipsisV} />
+                    {menuOpen === index && (
+                      <div className="dropdown-menu">
+                        {booking.status === "Pending" && (
+                          <>
+                            <div onClick={() => approveBooking(index)}>Approve</div>
+                            <div onClick={() => rejectBooking(index)}>Reject</div>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="6" style={{ textAlign: "center", padding: "20px" }}>
+                  No pending requests.
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       ) : (
         <div className="grid-view">
-    {filteredBookings.map((booking, index) => (
-      <div key={index} className="grid-item">
-        <h3>{booking.room}</h3>
-        <p><strong>Employee:</strong> {booking.employee}</p>
-        <p><strong>From:</strong> {booking.from}</p>
-        <p><strong>To:</strong> {booking.to}</p>
-        <p><strong>Status:</strong> {booking.status}</p>
+          {filteredBookings.length > 0 ? (
+            filteredBookings.map((booking, index) => (
+              <div key={index} className="grid-item">
+                <h3>{booking.room}</h3>
+                <p><strong>Employee:</strong> {booking.employee}</p>
+                <p><strong>From:</strong> {booking.from}</p>
+                <p><strong>To:</strong> {booking.to}</p>
+                <p><strong>Status:</strong> {booking.status}</p>
 
-        {booking.status === "Pending" && (
-          <div className="grid-actions">
-            <button onClick={() => approveBooking(index)}>Approve</button>
-            <button onClick={() => rejectBooking(index)}>Reject</button>
-          </div>
-        )}
-      </div>
-    ))}
-  </div>
-)}
-           
+                {booking.status === "Pending" && (
+                  <div className="grid-actions">
+                    <button onClick={() => approveBooking(index)}>Approve</button>
+                    <button onClick={() => rejectBooking(index)}>Reject</button>
+                  </div>
+                )}
+              </div>
+            ))
+          ) : (
+            <div style={{ textAlign: "center", padding: "20px" }}>
+              No pending requests.
+            </div>
+          )}
+        </div>
+      )}
+           <Snackbar
+                   open={snackbar.open}
+                   autoHideDuration={4000}
+                   onClose={handleCloseSnackbar}
+                   anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+                 >
+                   <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: "100%" }}>
+                     {snackbar.message}
+                   </Alert>
+                 </Snackbar>
     </div>
   );
 };

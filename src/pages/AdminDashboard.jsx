@@ -1,185 +1,329 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  Box, Typography, Paper, TextField, Button, IconButton,
-  Dialog, DialogTitle, DialogContent, MenuItem, Select,
-  InputLabel, FormControl, Divider, Table, TableBody,
-  TableCell, TableContainer, TableHead, TableRow, TablePagination
+  Box, Typography, Paper, IconButton,
+  Dialog, DialogTitle, DialogContent,
+  MenuItem, Table, TableBody, TableCell,
+  TableContainer, TableHead, TableRow, Menu,DialogActions, Button
 } from "@mui/material";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faUsers, faDoorOpen, faCheckCircle, faBookmark,
-  faWallet, faDoorClosed, faTrash, faEdit, faWrench
+  faUsers, faDoorOpen, faCheckCircle,
+  faBookmark, faWallet, faDoorClosed, faEllipsisV
 } from "@fortawesome/free-solid-svg-icons";
-import "./AdminDashboard.css";
 import { useNavigate } from "react-router-dom";
+import "./AdminDashboard.css";
+import { getRooms ,updateRoomStatus ,getAllUsers,getAllBookings} from "../api";
+import { Snackbar, Alert } from "@mui/material";
+
 
 const AdminDashboard = () => {
-  const [users, setUsers] = useState([
-    { id: 1, name: "Alice Johnson", email: "alice@example.com", division: "IT", designation: "Manager" },
-    { id: 2, name: "Bob Smith", email: "bob@example.com", division: "HR", designation: "Executive" },
-  ]);
-
-  const [rooms, setRooms] = useState([
-    { id: 1, name: "Main Conference", seats: 15, facilities: "Projector, AC", floor: "1st", status: "Active" },
-    { id: 2, name: "Innovation Hub", seats: 10, facilities: "Whiteboard, WiFi", floor: "2nd", status: "Active" },
-  ]);
-
-  const [newUser, setNewUser] = useState({ name: "", email: "", password: "", division: "", designation: "" });
-  const [newRoom, setNewRoom] = useState({ name: "", seats: "", facilities: "", floor: "", status: "Active" });
-
-  const [userDialogOpen, setUserDialogOpen] = useState(false);
+  const [rooms, setRooms] = useState([]);
   const [roomDialogOpen, setRoomDialogOpen] = useState(false);
+  const [roomFilterStatus, setRoomFilterStatus] = useState(null);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedRoomId, setSelectedRoomId] = useState(null);
+  const token = localStorage.getItem("adminToken");
+  const [users, setUsers] = useState([]);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+  const [bookingList, setBookingList] = useState([]);
+  const [newBookingCount, setNewBookingCount] = useState(0);
+  const [ongoingBookingCount, setOngoingBookingCount] = useState(0);
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const handleCardClick = () => {
 
-  const handleAddUser = () => {
-    if (newUser.name && newUser.email && newUser.password && newUser.division && newUser.designation) {
-      const id = users.length ? users[users.length - 1].id + 1 : 1;
-      setUsers([...users, { ...newUser, id }]);
-      setNewUser({ name: "", email: "", password: "", division: "", designation: "" });
-    }
+    navigate("/all-bookings", { state: { activeTab: "ongoing" } });
   };
 
-  const handleDeleteUser = (id) => {
-    setUsers(users.filter((user) => user.id !== id));
+  const statusStyles = {
+    "active": { label: "Active", color: "#4caf50" },
+    "inactive": { label: "Inactive", color: "#9e9e9e" },
+    "under-maintenance": { label: "Under Maintenance", color: "#ff9800" }
   };
 
-  const handleAddRoom = () => {
-    if (newRoom.name && newRoom.seats && newRoom.facilities && newRoom.floor) {
-      const id = rooms.length ? rooms[rooms.length - 1].id + 1 : 1;
-      setRooms([...rooms, { ...newRoom, id }]);
-      setNewRoom({ name: "", seats: "", facilities: "", floor: "", status: "Active" });
-    }
-  };
-
-  const handleDeleteRoom = (id) => {
-    setRooms(rooms.filter((room) => room.id !== id));
-  };
-
-  const toggleRoomStatus = (id) => {
-    setRooms(rooms.map(room =>
-      room.id === id ? { ...room, status: room.status === "Active" ? "Under Maintenance" : "Active" } : room
-    ));
-  };
-
-  const filteredUsers = users.filter(user =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const handleChangePage = (event, newPage) => setPage(newPage);
-  const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(+event.target.value);
-    setPage(0);
+  const statusDisplayMap = {
+    "active": "Active",
+    "inactive": "Inactive",
+    "under-maintenance": "Under Maintenance",
   };
   const navigate = useNavigate();
+
+  const openMenu = Boolean(anchorEl);
+
+  useEffect(() => {
+  const fetchBookings = async () => {
+    const token = localStorage.getItem("adminToken");
+    try {
+      const data = await getAllBookings(token);
+
+      // Set the booking list
+      setBookingList(data);
+
+      // Count new bookings where approveStatus is "pending"
+      const newBookings = data.filter((booking) => booking.approveStatus?.toLowerCase() === "pending");
+      setNewBookingCount(newBookings.length);
+
+      // Count ongoing bookings where status is "ongoing"
+      const ongoingBookings = data.filter((booking) => booking.status?.toLowerCase() === "ongoing");
+      setOngoingBookingCount(ongoingBookings.length);
+    } catch (err) {
+      console.error("Failed to fetch bookings", err);
+    }
+  };
+
+  fetchBookings();
+}, []);
+
+  const fetchRooms = async () => {
+    try {
+      const data = await getRooms(token);
+      setRooms(data);
+    } catch (error) {
+      console.error("Error fetching rooms:", error);
+    }
+  };
+  
+  useEffect(() => {
+    if (!token) {
+      console.error("No token found, please log in.");
+      return;
+    }
+    fetchRooms();
+  }, [token]);
+  
+
+  const fetchUsers = async () => {
+      try {
+        const data = await getAllUsers(token);
+        console.log("Fetched users:", data);
+        if (data && Array.isArray(data)) {
+          setUsers(data);
+        } else {
+          setUsers([]);
+        }
+      } catch (error) {
+        console.error("Error fetching users:", error);
+        setUsers([]);
+      }
+    };
+    
+    
+  
+    useEffect(() => {
+      fetchUsers();
+    }, []);
+  
+
+
+
+    const handleMenuOpen = (event, id) => {
+      setAnchorEl(event.currentTarget);
+      setSelectedRoomId(id);
+    };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedRoomId(null);
+  };
+
+  const confirmStatusChange = (status, roomId) => {
+    setSelectedStatus(status);
+    setSelectedRoomId(roomId);
+    setConfirmOpen(true);
+  };
+ 
+  const handleConfirmChange = async () => {
+    try {
+      await updateRoomStatus(selectedRoomId, selectedStatus.toLowerCase(), token);
+      setSnackbar({ open: true, message: "Status updated successfully", severity: "success" });
+      await fetchRooms(); // refresh rooms data
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: error.response?.data?.message || "Failed to update status.",
+        severity: "error",
+      });
+    } finally {
+      setConfirmOpen(false);
+    }
+  };
+
+  const handleDialogOpen = (filter = null) => {
+    setRoomFilterStatus(filter);
+    setRoomDialogOpen(true);
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
+
+  const filteredRooms = roomFilterStatus
+    ? rooms.filter(room => room.status === roomFilterStatus)
+    : rooms;
 
   return (
     <>
       <div className="dashboard-grid">
       <Paper className="card-content clickable" onClick={() => navigate("/user-management")}>
-         <FontAwesomeIcon icon={faUsers} className="icon" />
-          <div className="card-text">
-            <Typography variant="h6">Number of Users</Typography>
-            <Typography variant="body1" className="count">{users.length}</Typography>
-          </div>
-        </Paper>
+  <FontAwesomeIcon icon={faUsers} className="icon" />
+  <div className="card-text">
+    <Typography variant="h6">Number of Users</Typography>
+    <Typography variant="body1" className="count">{users.length}</Typography>
+  </div>
+</Paper>
 
-        <Paper className="card-content clickable" onClick={() => setRoomDialogOpen(true)}>
-          <FontAwesomeIcon icon={faDoorOpen} className="icon" />
-          <div className="card-text">
-            <Typography variant="h6">Total Conference Rooms</Typography>
-            <Typography variant="body1" className="count">{rooms.length}</Typography>
-          </div>
-        </Paper>
+<Paper className="card-content clickable" onClick={() => handleDialogOpen(null)}>
+  <FontAwesomeIcon icon={faDoorOpen} className="icon" />
+  <div className="card-text">
+    <Typography variant="h6">Total Conference Rooms</Typography>
+    <Typography variant="body1" className="count">{rooms.length}</Typography>
+  </div>
+</Paper>
 
-        <Paper className="card-content clickable">
-          <FontAwesomeIcon icon={faCheckCircle} className="icon" />
-          <div className="card-text">
-            <Typography variant="h6">Ongoing Bookings</Typography>
-            <Typography variant="body1" className="count">4</Typography>
-          </div>
-        </Paper>
 
-        <Paper className="card-content clickable">
-          <FontAwesomeIcon icon={faBookmark} className="icon" />
-          <div className="card-text">
-            <Typography variant="h6">New Bookings</Typography>
-            <Typography variant="body1" className="count">5</Typography>
-          </div>
-        </Paper>
+       <Paper className="card-content clickable" onClick={handleCardClick}>
+      <FontAwesomeIcon icon={faCheckCircle} className="icon" />
+      <div className="card-text">
+        <Typography variant="h6">Ongoing Bookings</Typography>
+        <Typography variant="body1" className="count">{ongoingBookingCount}</Typography>
+      </div>
+    </Paper>
 
-        <Paper className="card-content clickable">
+        <Paper className="card-content clickable" onClick={() => navigate("/pending-approval")}>
+  <FontAwesomeIcon icon={faBookmark} className="icon" />
+  <div className="card-text">
+    <Typography variant="h6">New Bookings</Typography>
+    <Typography variant="body1" className="count">{newBookingCount}</Typography>
+  </div>
+</Paper>
+
+
+        <Paper className="card-content clickable" onClick={() => handleDialogOpen("under-maintenance")}>
           <FontAwesomeIcon icon={faWallet} className="icon" />
           <div className="card-text">
             <Typography variant="h6">Rooms Under Maintenance</Typography>
             <Typography variant="body1" className="count">
-              {rooms.filter(room => room.status === "Under Maintenance").length}
+              {rooms.filter(room => room.status === "under-maintenance").length}
             </Typography>
           </div>
         </Paper>
 
-        <Paper className="card-content clickable">
+        <Paper className="card-content clickable" onClick={() => handleDialogOpen("active")}>
           <FontAwesomeIcon icon={faDoorClosed} className="icon" />
           <div className="card-text">
             <Typography variant="h6">Active Rooms</Typography>
             <Typography variant="body1" className="count">
-              {rooms.filter(room => room.status === "Active").length}
+              {rooms.filter(room => room.status === "active").length}
             </Typography>
           </div>
         </Paper>
       </div>
 
-   
-
-      {/* ROOM DIALOG */}
       <Dialog open={roomDialogOpen} onClose={() => setRoomDialogOpen(false)} fullWidth maxWidth="md">
-        <DialogTitle>Conference Room Management</DialogTitle>
+        <DialogTitle>
+          {roomFilterStatus ? `${roomFilterStatus} Rooms` : "All Conference Rooms"}
+        </DialogTitle>
         <DialogContent>
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 2 }}>
-            <TextField label="Room Name" fullWidth size="small" value={newRoom.name} onChange={(e) => setNewRoom({ ...newRoom, name: e.target.value })} />
-            <TextField label="Number of Seats" fullWidth size="small" value={newRoom.seats} onChange={(e) => setNewRoom({ ...newRoom, seats: e.target.value })} />
-            <TextField label="Facilities Available" fullWidth size="small" value={newRoom.facilities} onChange={(e) => setNewRoom({ ...newRoom, facilities: e.target.value })} />
-            <TextField label="Floor" fullWidth size="small" value={newRoom.floor} onChange={(e) => setNewRoom({ ...newRoom, floor: e.target.value })} />
-            <Button variant="contained" onClick={handleAddRoom}>Add Room</Button>
-          </Box>
+  <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: 2 }}>
+    <Table size="small">
+      <TableHead sx={{ backgroundColor: "#f5f5f5" }}>
+        <TableRow>
+          <TableCell sx={{ fontWeight: "bold" }}>Name</TableCell>
+          <TableCell sx={{ fontWeight: "bold" }}>Status</TableCell>
+          <TableCell sx={{ fontWeight: "bold" }}>Seats</TableCell>
+          <TableCell sx={{ fontWeight: "bold" }}>Facilities</TableCell>
+          <TableCell sx={{ fontWeight: "bold" }}>Floor</TableCell>
+          <TableCell align="right" sx={{ fontWeight: "bold" }}>Actions</TableCell>
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {filteredRooms.map((room, index) => (
+          <TableRow
+            key={room.id}
+            sx={{
+              backgroundColor: index % 2 === 0 ? "#ffffff" : "#fafafa",
+              '&:hover': { backgroundColor: "#f0f8ff" }
+            }}
+          >
+            <TableCell>{room.title}</TableCell>
+            <TableCell>
+  {statusStyles[room.status] ? (
+    <span style={{
+      padding: "4px 10px",
+      borderRadius: "20px",
+      fontSize: "0.75rem",
+      fontWeight: 500,
+      color: "white",
+      backgroundColor: statusStyles[room.status].color
+    }}>
+      {statusStyles[room.status].label}
+    </span>
+  ) : (
+    <span style={{
+      padding: "4px 10px",
+      borderRadius: "20px",
+      fontSize: "0.75rem",
+      fontWeight: 500,
+      color: "white",
+      backgroundColor: "#bdbdbd"
+    }}>
+      Unknown
+    </span>
+  )}
+</TableCell>
 
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Name</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Seats</TableCell>
-                  <TableCell>Facilities</TableCell>
-                  <TableCell>Floor</TableCell>
-                  <TableCell align="right">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {rooms.map((room) => (
-                  <TableRow key={room.id}>
-                    <TableCell>{room.name}</TableCell>
-                    <TableCell>{room.status}</TableCell>
-                    <TableCell>{room.seats}</TableCell>
-                    <TableCell>{room.facilities}</TableCell>
-                    <TableCell>{room.floor}</TableCell>
-                    <TableCell align="right">
-                      <IconButton onClick={() => toggleRoomStatus(room.id)}><FontAwesomeIcon icon={faWrench} /></IconButton>
-                      <IconButton><FontAwesomeIcon icon={faEdit} /></IconButton>
-                      <IconButton onClick={() => handleDeleteRoom(room.id)}><FontAwesomeIcon icon={faTrash} /></IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </DialogContent>
+            <TableCell>{room.seats}</TableCell>
+            <TableCell>
+  {room.facilities && room.facilities.length > 0
+    ? room.facilities.join(", ")
+    : "No facilities"}
+</TableCell>
+            <TableCell>{room.floor}</TableCell>
+            <TableCell align="right">
+            <IconButton onClick={(e) => handleMenuOpen(e, room._id)}>
+                <FontAwesomeIcon icon={faEllipsisV} style={{ color: "#333" }} />
+              </IconButton>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  </TableContainer>
+
+  <Menu anchorEl={anchorEl} open={openMenu} onClose={handleMenuClose}>
+  <MenuItem onClick={() => confirmStatusChange("under-maintenance", selectedRoomId)}>Move to Maintenance</MenuItem>
+<MenuItem onClick={() => confirmStatusChange("active", selectedRoomId)}>Move to Active</MenuItem>
+<MenuItem onClick={() => confirmStatusChange("inactive", selectedRoomId)}>Move to Inactive</MenuItem>
+</Menu>
+
+<Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
+  <DialogTitle>Confirm Status Change</DialogTitle>
+  <DialogContent>
+    Are you sure you want to change the room status to <strong>{statusDisplayMap[selectedStatus]}</strong>?
+  </DialogContent>
+  <DialogActions>
+    <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
+    <Button onClick={handleConfirmChange} variant="contained" color="primary">Confirm</Button>
+  </DialogActions>
+</Dialog>
+
+</DialogContent>
+
+<Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: "100%" }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
       </Dialog>
     </>
   );
 };
 
 export default AdminDashboard;
+

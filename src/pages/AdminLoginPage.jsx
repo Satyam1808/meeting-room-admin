@@ -3,14 +3,14 @@ import { useNavigate, Link } from "react-router-dom";
 import "./AdminLoginPage.css"; // Import your CSS file for styling
 import { FaUser, FaLock, FaEye, FaEyeSlash } from "react-icons/fa";
 import { login } from "../api"; // Import login function
-
+import { Snackbar, Alert } from "@mui/material";
 const AdminLoginPage = () => {
   const navigate = useNavigate();
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [email, setEmail] = useState(""); // Changed username to email
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
   const togglePasswordVisibility = () => {
     setPasswordVisible(!passwordVisible);
   };
@@ -18,15 +18,36 @@ const AdminLoginPage = () => {
   const handleLogin = async () => {
     try {
       const response = await login(email, password);
-      localStorage.setItem("adminToken", response.token); // Store token
-      localStorage.setItem("adminUser", JSON.stringify(response.user)); // Store user details
-     
-       navigate('/', { replace: true });
-
+  
+      const { id, email: userEmail, name, role } = response.user;
+  
+      // Ensure only admins can login here
+      if (role !== 'admin') {
+        setSnackbar({ open: true, message: "Only admins can log in here.", severity: "error" });
+        return;
+      }
+  
+      // Store admin details and token
+      localStorage.setItem("adminToken", response.token);
+      localStorage.setItem("adminUser", JSON.stringify({ _id: id, email: userEmail, name, role }));
+  
+      console.log("Admin login token:", response.token);
+      console.log("Stored admin in localStorage:", localStorage.getItem("adminUser"));
+  
+      setSnackbar({ open: true, message: "Admin login successful!", severity: "success" });
+      setTimeout(() => navigate("/", { replace: true }), 1000);
+  
     } catch (err) {
-      setError(err.response?.data?.message || "Invalid email or password.");
+      const errorMessage = err.response?.data?.message || "Invalid email or password.";
+      setError(errorMessage);
+      setSnackbar({ open: true, message: errorMessage, severity: "error" });
     }
   };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
+  
 
   return (
     <div className="admin-login-page">
@@ -69,6 +90,17 @@ const AdminLoginPage = () => {
           No account? <a href="/admin-register">Register here</a>
         </p>
       </div>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: "100%" }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </div>
   );
 };

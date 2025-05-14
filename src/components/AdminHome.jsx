@@ -96,7 +96,7 @@ export default function Home() {
   }, [location]);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem('adminToken');
     navigate('/admin-login', { replace: true });
   };
 

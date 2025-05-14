@@ -3,8 +3,11 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
-    padding: 20px;
+    height: 100%;
+    width: 100%;
+    
+    padding-top: 20px;
+    
   }
   
   /* Profile Card */
@@ -50,11 +53,11 @@
     cursor: pointer;
     transition: 0.3s ease;
     max-width: 150px;
-    text-decoration-color: #000;
+    text-decoration-color: #121f2d;
   }
   
   .edit-btn:hover {
-    background: #f1f1f1;
+    background: #34495e;
   }
   
   /* Form */
@@ -83,14 +86,17 @@
     border-radius: 6px;
     font-size: 14px;
     background: #f1f1f1;
-    cursor: not-allowed;
+    cursor: text; /* ✅ Default cursor when enabled */
   }
   
+  /* ✅ Only apply not-allowed when input is disabled */
   input:disabled,
   select:disabled {
     cursor: not-allowed;
+    background: #f1f1f1;
   }
   
+   
   /* Password Field */
   .password-wrapper {
     display: flex;
@@ -111,29 +117,19 @@
     padding: 10px;
     border: none;
     border-radius: 6px;
-    background: #d0e2ff;
-    color: #000;
+    background-color: #34495e;
+    color: white;
     font-size: 16px;
+    font-weight: 600;
     margin-top: 10px;
     cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  .update-btn:hover {
+    background-color: #1e2b37;
   }
   
-  .logout-btn {
-    width: 100%;
-    padding: 10px;
-    border: none;
-    border-radius: 6px;
-    background: #fff;
-    color: black;
-    font-size: 16px;
-    margin-top: 10px;
-    cursor: pointer;
-    border: 1px solid #ccc;
-  }
-  
-  .logout-btn:hover {
-    background: #f8f8f8;
-  }
+
   
   /* Responsive */
   @media (max-width: 768px) {
